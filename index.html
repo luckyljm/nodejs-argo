@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VLESS 节点整理工具</title>
+<style>
+:root{--bg:#070a0f;--panel:#0d131d;--panel2:#101925;--line:#223044;--text:#edf4ff;--muted:#8d9aab;--a:#5eead4;--b:#60a5fa}
+*{box-sizing:border-box}body{margin:0;color:var(--text);background:radial-gradient(circle at 12% 0,#14243a 0,transparent 30%),radial-gradient(circle at 90% 10%,#0b2927 0,transparent 25%),var(--bg);font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif}.wrap{width:min(1440px,94vw);margin:auto}
+header{padding:40px 0 26px;display:flex;justify-content:space-between;align-items:center}.brand{display:flex;gap:14px;align-items:center}.logo{width:48px;height:48px;border:1px solid #34506d;border-radius:14px;display:grid;place-items:center;background:#0d1724;font-size:23px;box-shadow:0 12px 30px #0007}h1{margin:0 0 5px;font-size:24px}.sub{color:var(--muted);font-size:13px}.badge{border:1px solid #24504b;background:#0b211e;color:var(--a);border-radius:99px;padding:8px 13px;font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.stat{background:#0d131ddd;border:1px solid var(--line);border-radius:15px;padding:14px 16px}.label{font-size:11px;color:var(--muted);margin-bottom:5px}.num{font-size:19px;font-weight:700}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:linear-gradient(180deg,#111925ee,#0a1018ee);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 24px 70px #0006}.head{height:57px;padding:0 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.title{font-size:14px;font-weight:650}.dot{display:inline-block;width:7px;height:7px;background:var(--a);border-radius:50%;box-shadow:0 0 13px #5eead4aa;margin-right:9px}
+textarea,#out{width:100%;height:570px;border:0;outline:0;background:#080d14;color:#dbe8f8;padding:20px;font:13px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}textarea{resize:vertical}textarea::placeholder{color:#536174}#out{overflow:auto;white-space:pre-wrap;word-break:break-word}
+.toolbar{display:flex;gap:8px}button{border:1px solid #2b3b50;background:#121b27;color:#cdd9e8;border-radius:9px;padding:8px 12px;font-size:12px;cursor:pointer}button:hover{background:#1a2738}button.primary{background:linear-gradient(135deg,#187d73,#245f9c);border-color:#3d9c94;color:#fff}.empty{height:100%;display:grid;place-items:center;text-align:center;color:#536174}.empty b{display:block;color:#8290a3;margin-bottom:6px}
+.filterbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:#0a0f18}
+.filterbar .lbl{font-size:11px;color:var(--muted)}
+.seg{display:flex;border:1px solid #2b3b50;border-radius:9px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:#121b27;color:#cdd9e8;padding:7px 12px;font-size:12px}
+.seg button.active{background:linear-gradient(135deg,#187d73,#245f9c);color:#fff}
+.regions-box{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1}
+.regions-box label{display:flex;align-items:center;gap:5px;font-size:12px;color:#8d9aab;border:1px solid #2b3b50;background:#121b27;border-radius:8px;padding:5px 9px;cursor:pointer;user-select:none}
+.regions-box label.checked{background:#0b211e;border-color:#24504b;color:var(--a)}
+.regions-box input{display:none}
+.regions-box .allbtn{font-size:12px;color:var(--b);text-decoration:underline;cursor:pointer;white-space:nowrap}
+.maxinput{width:66px;background:#121b27;border:1px solid #2b3b50;border-radius:8px;color:#cdd9e8;padding:6px 8px;font-size:12px;outline:0}
+.maxinput::placeholder{color:#536174}
+footer{text-align:center;color:#59677a;font-size:11px;padding:18px}.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:#121c29;border:1px solid #30455e;border-radius:11px;padding:10px 16px;transition:.2s;font-size:12px;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.badge{display:none}header{padding-top:25px}textarea,#out{height:420px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="brand"><div class="logo">◈</div><div><h1>VLESS 节点整理工具</h1><div class="sub">提取 IP:PORT · 规范地区代码 · 自动排序编号</div></div></div><div class="badge">LOCAL · 无服务器 · 隐私优先</div></header>
+<div class="stats">
+<div class="stat"><div class="label">输入行数</div><div class="num" id="total">0</div></div>
+<div class="stat"><div class="label">地区数量</div><div class="num" id="regions">0</div></div>
+<div class="stat"><div class="label">有效节点</div><div class="num" id="valid">0</div></div>
+<div class="stat"><div class="label">重复节点(IP:端口#区域)</div><div class="num" id="dupes">0</div></div>
+</div>
+<div class="grid">
+<section class="card"><div class="head"><div class="title"><span class="dot"></span>原始 VLESS</div><div class="toolbar"><button onclick="paste()">粘贴</button><button onclick="clearAll()">清空</button></div></div>
+<textarea id="input" spellcheck="false" placeholder="将 VLESS:// 链接粘贴到这里……
+
+支持：
+vless://UUID@IP:PORT?...#HK
+vless://UUID@IP:PORT?...#JP_123
+
+地区代码后的数字会自动忽略。"></textarea></section>
+<section class="card"><div class="head"><div class="title"><span class="dot"></span>整理结果</div><button class="primary" onclick="copy()">复制结果</button></div>
+<div class="filterbar">
+<div class="lbl">输出格式</div>
+<div class="seg" id="numMode"><button class="active" data-mode="num" onclick="setNumMode('num')">含编号</button><button data-mode="plain" onclick="setNumMode('plain')">不含编号</button></div>
+<div class="lbl">每区域上限</div>
+<input type="number" id="maxPerRegion" class="maxinput" min="1" placeholder="不限" oninput="render()">
+<div class="regions-box" id="regionBox"><span style="color:#536174;font-size:12px">暂无地区</span></div>
+</div>
+<div id="out"><div class="empty"><div><b>等待输入节点</b>粘贴 VLESS 链接后会自动整理</div></div></div></section>
+</div>
+<footer>所有处理均在浏览器本地完成 · 不上传 · 不保存 · 不依赖外部服务</footer>
+</div><div id="toast" class="toast"></div>
+<script>
+const $=id=>document.getElementById(id),input=$("input"),out=$("out");
+const sup=n=>String(n).padStart(2,"0").split("").map(x=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[+x]).join("");
+let numMode="num", groupsData={}, regionSel={};
+function parseGroups(){
+ const text=input.value.trim(), lines=text?text.split(/\r?\n/):[], groups={}; let valid=0;
+ for(const line of lines){
+  const m=line.trim().match(/@([^?#\s]+)(?:[?#]|$)/), t=line.trim().match(/#([^#\s]+)\s*$/);
+  if(!m||!t)continue;
+  let hp=m[1], tag=decodeURIComponent(t[1]).match(/^([A-Za-z]{2,})/);
+  if(!tag||!/:\d+$/.test(hp))continue;
+  let r=tag[1].toUpperCase(); (groups[r]??=[]).push(hp); valid++;
+ }
+ return {lines,groups,valid};
+}
+function parse(){
+ const {lines,groups}=parseGroups();
+ groupsData=groups;
+ const rs=Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+ const newSel={}; rs.forEach(r=>newSel[r]=(r in regionSel)?regionSel[r]:true); regionSel=newSel;
+ renderRegionBox(rs);
+ $("total").textContent=lines.filter(x=>x.trim()).length;
+ $("regions").textContent=rs.length;
+ render();
+}
+function render(){
+ const rs=Object.keys(groupsData).sort((a,b)=>a.localeCompare(b));
+ const selected=rs.filter(r=>regionSel[r]);
+ const maxRaw=$("maxPerRegion").value;
+ const maxN=maxRaw?Math.max(1,parseInt(maxRaw,10)||0):null;
+ let valid=0,dupes=0;
+ const blocks=selected.map(r=>{
+  let arr=groupsData[r];
+  if(maxN&&arr.length>maxN)arr=arr.slice(0,maxN); // 保留原始链接先后顺序，取前 N 个
+  valid+=arr.length;
+  const cnt={}; arr.forEach(hp=>cnt[hp]=(cnt[hp]||0)+1);
+  Object.values(cnt).forEach(c=>{if(c>1)dupes+=c});
+  return numMode==="num"
+   ? arr.map((hp,i)=>`${hp}#${r}${sup(i+1)}`).join("\n")
+   : arr.map(hp=>`${hp}#${r}`).join("\n");
+ });
+ out.textContent=blocks.join("\n\n");
+ if(!blocks.length)out.innerHTML='<div class="empty"><div><b>等待输入节点</b>粘贴 VLESS 链接后会自动整理</div></div>';
+ $("valid").textContent=valid;
+ $("dupes").textContent=dupes;
+}
+function renderRegionBox(rs){
+ const box=$("regionBox");
+ if(!rs.length){box.innerHTML='<span style="color:#536174;font-size:12px">暂无地区</span>';return}
+ const allChecked=rs.every(r=>regionSel[r]);
+ let html=`<span class="allbtn" onclick="toggleAll(${!allChecked})">${allChecked?"清空":"全选"}</span>`;
+ html+=rs.map(r=>`<label class="${regionSel[r]?"checked":""}"><input type="checkbox" ${regionSel[r]?"checked":""} onchange="toggleRegion('${r}')">${r} (${groupsData[r].length})</label>`).join("");
+ box.innerHTML=html;
+}
+function toggleRegion(r){regionSel[r]=!regionSel[r];renderRegionBox(Object.keys(groupsData).sort((a,b)=>a.localeCompare(b)));render()}
+function toggleAll(v){Object.keys(groupsData).forEach(r=>regionSel[r]=v);renderRegionBox(Object.keys(groupsData).sort((a,b)=>a.localeCompare(b)));render()}
+function setNumMode(m){numMode=m;document.querySelectorAll("#numMode button").forEach(b=>b.classList.toggle("active",b.dataset.mode===m));render()}
+async function paste(){try{input.value=await navigator.clipboard.readText();parse();toast("已粘贴")}catch(e){input.focus();toast("请手动粘贴")}}
+async function copy(){const s=out.textContent.trim();if(!s){toast("暂无结果");return}try{await navigator.clipboard.writeText(s);toast("已复制")}catch(e){const x=document.createElement("textarea");x.value=s;document.body.appendChild(x);x.select();document.execCommand("copy");x.remove();toast("已复制")}}
+function clearAll(){input.value="";parse();input.focus();toast("已清空")}
+let timer;input.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(parse,60)});
+let tt;function toast(s){const t=$("toast");t.textContent=s;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1600)}
+parse();
+</script>
+</body>
+</html>
